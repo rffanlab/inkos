@@ -27,6 +27,10 @@ export const BookRulesSchema = z.object({
   version: z.string().default("1.0"),
   protagonist: ProtagonistSchema,
   genreLock: GenreLockSchema,
+  // Narrative person, set ONLY when the user explicitly asked for one. Lenient:
+  // a stray/placeholder value degrades to undefined rather than breaking the
+  // whole book_rules parse (fail-open).
+  narrativePerson: z.enum(["first", "third"]).optional().catch(undefined),
   numericalSystemOverrides: NumericalOverridesSchema,
   eraConstraints: EraConstraintsSchema,
   prohibitions: z.array(z.string()).default([]),

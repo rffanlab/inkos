@@ -56,6 +56,7 @@ export function buildWriterSystemPrompt(
         buildGoldenOpeningDiscipline(chapterNumber, "en"),
         buildGenreRules(genreProfile, genreBody),
         buildProtagonistRules(bookRules),
+        buildNarrativePersonRule(bookRules, isEnglish ? "en" : "zh"),
         buildBookRulesBody(bookRulesBody),
         buildStyleGuide(styleGuide),
         buildStyleFingerprint(styleFingerprint),
@@ -79,6 +80,7 @@ export function buildWriterSystemPrompt(
         bookRules?.enableFullCastTracking ? buildFullCastTracking() : "",
         buildGenreRules(genreProfile, genreBody),
         buildProtagonistRules(bookRules),
+        buildNarrativePersonRule(bookRules, isEnglish ? "en" : "zh"),
         buildBookRulesBody(bookRulesBody),
         buildStyleGuide(styleGuide),
         buildStyleFingerprint(styleFingerprint),
@@ -672,6 +674,22 @@ function buildGenreRules(gp: GenreProfile, genreBody: string): string {
 // ---------------------------------------------------------------------------
 // Protagonist rules from book_rules
 // ---------------------------------------------------------------------------
+
+// Narrative person is a durable user constraint: enforce it only when the user
+// explicitly set one (book_rules.narrativePerson). When unset, stay silent so the
+// genre default applies — we never impose a person the user didn't ask for.
+function buildNarrativePersonRule(bookRules: BookRules | null, language: "zh" | "en"): string {
+  const person = bookRules?.narrativePerson;
+  if (!person) return "";
+  if (language === "en") {
+    return person === "first"
+      ? "## Narrative person (hard constraint)\nWrite this book entirely in FIRST person (the protagonist's inner viewpoint). Do NOT slip into third person or an omniscient narrator — this overrides genre convention and your default."
+      : "## Narrative person (hard constraint)\nWrite this book in THIRD person.";
+  }
+  return person === "first"
+    ? "## 叙事人称（硬约束）\n本书必须全程使用第一人称（主角内心视角）叙述，禁止切换到第三人称或全知视角——此约束优先于题材惯例与你的默认倾向。"
+    : "## 叙事人称（硬约束）\n本书使用第三人称叙述。";
+}
 
 function buildProtagonistRules(bookRules: BookRules | null): string {
   if (!bookRules?.protagonist) return "";

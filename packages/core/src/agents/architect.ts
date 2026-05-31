@@ -358,7 +358,7 @@ name: <次要角色名>
 
 === SECTION: book_rules ===
 
-**只输出 YAML frontmatter 一块——零散文。** 所有的"叙事视角 / 本书专属规则 / 核心冲突驱动"等散文已经合并到 story_frame.世界观底色，不要在这里重复写。
+**只输出 YAML frontmatter 一块——零散文。** 所有的"叙事视角 / 本书专属规则 / 核心冲突驱动"等散文已经合并到 story_frame.世界观底色，不要在这里重复写。当且仅当用户在 brief 中明确指定了叙事人称时，在 frontmatter 里加一行 \`narrativePerson: first\`（第一人称）或 \`narrativePerson: third\`（第三人称）；用户没明确要求就不要加这一行，不要替用户默认人称。
 \`\`\`
 ---
 version: "1.0"
@@ -554,7 +554,7 @@ name: <minor name>
 
 === SECTION: book_rules ===
 
-**Output ONLY the YAML frontmatter block — zero prose.** All narrative guidance (perspective, book-specific rules, core conflict driver) has moved into story_frame.03_World_Tonal_Ground. Do not repeat it here.
+**Output ONLY the YAML frontmatter block — zero prose.** All narrative guidance (perspective, book-specific rules, core conflict driver) has moved into story_frame.03_World_Tonal_Ground. Do not repeat it here. If and ONLY if the brief explicitly specifies a narrative person, add a line \`narrativePerson: first\` or \`narrativePerson: third\` to the frontmatter; if the user did not ask, do not add it — never pick a default person for them.
 \`\`\`
 ---
 version: "1.0"
