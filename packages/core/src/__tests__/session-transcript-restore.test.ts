@@ -1725,4 +1725,136 @@ describe("session transcript restore", () => {
     ]);
     expect(secondAssistant?.toolExecutions?.[0]).not.toHaveProperty("args");
   });
+
+  it("restores a terminal proposed-action card onto the previous assistant message", async () => {
+    await appendTranscriptEvent(projectRoot, {
+      type: "session_created",
+      version: 1,
+      sessionId: "s1",
+      seq: 1,
+      timestamp: 1,
+      bookId: null,
+      sessionKind: "play",
+      playMode: "open",
+      title: null,
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await appendTranscriptEvent(projectRoot, {
+      type: "request_started",
+      version: 1,
+      sessionId: "s1",
+      requestId: "r1",
+      sessionKind: "play",
+      seq: 2,
+      timestamp: 2,
+      input: "开一个开放世界",
+    });
+    await appendTranscriptEvent(projectRoot, {
+      type: "message",
+      version: 1,
+      sessionId: "s1",
+      requestId: "r1",
+      uuid: "a1",
+      parentUuid: null,
+      seq: 3,
+      role: "assistant",
+      timestamp: 3,
+      message: {
+        role: "assistant",
+        content: [
+          { type: "text", text: "现在生成启动确认卡。" },
+          {
+            type: "toolCall",
+            id: "proposal-1",
+            name: "propose_action",
+            arguments: {
+              action: "play_start",
+              instruction: "启动旧影院",
+              title: "确认启动",
+            },
+          },
+        ],
+        api: "openai-completions",
+        provider: "openai",
+        model: "deepseek-v4-flash",
+        usage,
+        stopReason: "toolUse",
+        timestamp: 3,
+      },
+    } as MessageEvent);
+    await appendTranscriptEvent(projectRoot, {
+      type: "message",
+      version: 1,
+      sessionId: "s1",
+      requestId: "r1",
+      uuid: "t1",
+      parentUuid: "a1",
+      seq: 4,
+      role: "toolResult",
+      timestamp: 4,
+      toolCallId: "proposal-1",
+      message: {
+        role: "toolResult",
+        toolCallId: "proposal-1",
+        toolName: "propose_action",
+        content: [{ type: "text", text: "确认启动" }],
+        details: {
+          kind: "proposed_action",
+          action: "play_start",
+          targetSessionKind: "play",
+          sameSession: true,
+          instruction: "启动旧影院",
+          title: "确认启动",
+        },
+        isError: false,
+        timestamp: 4,
+      },
+    } as MessageEvent);
+    await appendTranscriptEvent(projectRoot, {
+      type: "message",
+      version: 1,
+      sessionId: "s1",
+      requestId: "r1",
+      uuid: "a2",
+      parentUuid: "t1",
+      seq: 5,
+      role: "assistant",
+      timestamp: 5,
+      message: {
+        role: "assistant",
+        content: [],
+        api: "openai-completions",
+        provider: "openai",
+        model: "deepseek-v4-flash",
+        usage,
+        stopReason: "stop",
+        timestamp: 5,
+      },
+    } as MessageEvent);
+    await appendTranscriptEvent(projectRoot, {
+      type: "request_committed",
+      version: 1,
+      sessionId: "s1",
+      requestId: "r1",
+      seq: 6,
+      timestamp: 6,
+    });
+
+    const session = await deriveBookSessionFromTranscript(projectRoot, "s1");
+    const assistant = session?.messages.find((message) => message.content === "现在生成启动确认卡。");
+
+    expect(assistant?.toolExecutions).toEqual([
+      expect.objectContaining({
+        id: "proposal-1",
+        tool: "propose_action",
+        details: expect.objectContaining({
+          kind: "proposed_action",
+          action: "play_start",
+          targetSessionKind: "play",
+          instruction: "启动旧影院",
+        }),
+      }),
+    ]);
+  });
 });

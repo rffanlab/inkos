@@ -136,4 +136,49 @@ describe("chat message actions", () => {
       }),
     ]);
   });
+
+  it("restores confirmed proposal cards when loading persisted session messages", () => {
+    const store = createTestStore();
+    const sessionId = store.getState().createDraftSession(null, "play", "open");
+
+    store.getState().loadSessionMessages(sessionId, [
+      {
+        role: "assistant",
+        content: "",
+        timestamp: 1,
+        toolExecutions: [
+          {
+            id: "proposal-1",
+            tool: "propose_action",
+            label: "确认动作",
+            status: "completed",
+            startedAt: 1,
+            details: {
+              kind: "proposed_action",
+              action: "play_start",
+              targetSessionKind: "play",
+              instruction: "启动旧影院",
+            },
+          },
+        ],
+      },
+      {
+        role: "assistant",
+        content: "",
+        timestamp: 2,
+        toolExecutions: [
+          {
+            id: "play-1",
+            tool: "play_start",
+            label: "启动互动世界",
+            status: "completed",
+            startedAt: 2,
+            details: { kind: "play_world_started" },
+          },
+        ],
+      },
+    ]);
+
+    expect(store.getState().resolvedProposals).toEqual({ "proposal-1": "confirmed" });
+  });
 });

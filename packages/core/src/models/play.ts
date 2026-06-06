@@ -156,6 +156,19 @@ function slugifyId(prefix: string, value: unknown, index: number): string {
   return `${prefix}_${base ? base.slice(0, 30) : `x${index}`}`;
 }
 
+function edgeIdFromParts(fromId: unknown, type: unknown, toId: unknown, index: number): string {
+  const clean = (value: unknown, fallback: string): string => {
+    const text = typeof value === "string" ? value.trim().replace(/\s+/g, "_") : "";
+    return text ? text.slice(0, 48) : fallback;
+  };
+  return [
+    "edge",
+    clean(fromId, `from${index}`),
+    clean(type, "rel"),
+    clean(toId, `to${index}`),
+  ].join("_");
+}
+
 function backfillUpsertIds(container: unknown, prefix: string, labelKey: string): unknown {
   if (!container || typeof container !== "object" || Array.isArray(container)) return container;
   const c = container as Record<string, unknown>;
@@ -199,6 +212,14 @@ const EDGE_KEY_ALIASES: ReadonlyArray<readonly [string, string]> = [
   ["relation", "type"], ["rel", "type"], ["kind", "type"], ["relationship", "type"],
 ];
 
+function isLowInformationEdgeId(id: unknown, type: unknown): boolean {
+  if (typeof id !== "string") return true;
+  const edgeId = id.trim();
+  if (!edgeId) return true;
+  const relationType = typeof type === "string" ? type.trim().replace(/\s+/g, "_") : "";
+  return relationType ? edgeId === `edge_${relationType}` : edgeId === "edge";
+}
+
 function backfillEdges(container: unknown, eventId: string, labelToId: Map<string, string>): unknown {
   if (!container || typeof container !== "object" || Array.isArray(container)) return container;
   const c = container as Record<string, unknown>;
@@ -214,9 +235,14 @@ function backfillEdges(container: unknown, eventId: string, labelToId: Map<strin
     // Endpoints given by entity label (or id) resolve to the entity's id.
     o.fromId = resolve(o.fromId);
     o.toId = resolve(o.toId);
-    if (!hasText(o.id)) o.id = slugifyId("edge", o.type, i);
     if (!hasText(o.validFromEventId)) o.validFromEventId = eventId;
     if (!hasText(o.sourceEventId)) o.sourceEventId = eventId;
+    // Relationship identity is host-owned when the model omits an id or emits a
+    // low-information fallback like "edge_持有". Otherwise multiple holdings in
+    // one turn overwrite each other in file storage.
+    if (isLowInformationEdgeId(o.id, o.type)) {
+      o.id = edgeIdFromParts(o.fromId, o.type, o.toId, i);
+    }
     return o;
   });
   return c;

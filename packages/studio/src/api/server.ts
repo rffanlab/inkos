@@ -3374,12 +3374,13 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
         await refreshBookSessionFromTranscript();
         const createdBookId = await finalizeCreatedBook();
         if (requestedIntent || createdBookId) {
-          broadcast("agent:complete", { instruction, activeBookId, sessionId: bookSession.sessionId, sessionKind });
+          const responseSessionKind = bookSession.sessionKind ?? sessionKind;
+          broadcast("agent:complete", { instruction, activeBookId, sessionId: bookSession.sessionId, sessionKind: responseSessionKind });
           return c.json({
             response: "",
             session: {
               sessionId: bookSession.sessionId,
-              sessionKind,
+              sessionKind: responseSessionKind,
               ...(createdBookId ?? bookSession.bookId ? { activeBookId: createdBookId ?? bookSession.bookId } : {}),
             },
           });
@@ -3397,13 +3398,14 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
       await refreshBookSessionFromTranscript();
       await finalizeCreatedBook();
 
-      broadcast("agent:complete", { instruction, activeBookId, sessionId: bookSession.sessionId, sessionKind });
+      const responseSessionKind = bookSession.sessionKind ?? sessionKind;
+      broadcast("agent:complete", { instruction, activeBookId, sessionId: bookSession.sessionId, sessionKind: responseSessionKind });
 
       return c.json({
         response: result.responseText,
         session: {
           sessionId: bookSession.sessionId,
-          sessionKind,
+          sessionKind: responseSessionKind,
           ...(bookSession.bookId ? { activeBookId: bookSession.bookId } : {}),
         },
       });

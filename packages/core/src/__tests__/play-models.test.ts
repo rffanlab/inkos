@@ -240,6 +240,27 @@ describe("play models", () => {
     expect(edge?.validFromEventId).toBe("evt-9");         // temporal fields backfilled
   });
 
+  it("does not collapse multiple low-information edges with the same relation type", () => {
+    const mutation = PlayMutationSchema.parse({
+      eventId: "evt-10",
+      turn: 10,
+      actionKind: "look",
+      entities: [
+        { id: "actor_player", type: "actor", label: "玩家", updatedEventId: "evt-10" },
+        { id: "old_ticket", type: "evidence", label: "旧票", updatedEventId: "evt-10" },
+        { id: "ticket_fragment", type: "evidence", label: "残片", updatedEventId: "evt-10" },
+      ],
+      edges: [
+        { from: "玩家", relation: "持有", to: "旧票" },
+        { from: "玩家", relation: "持有", to: "残片" },
+      ],
+    });
+
+    expect(mutation.edges.upsert).toHaveLength(2);
+    expect(new Set(mutation.edges.upsert.map((edge) => edge.id)).size).toBe(2);
+    expect(mutation.edges.upsert.map((edge) => edge.toId).sort()).toEqual(["old_ticket", "ticket_fragment"]);
+  });
+
   it("backfills edge temporal fields from the turn event id when the model omits eventId", () => {
     const mutation = PlayMutationSchema.parse({
       turn: 12,

@@ -13,6 +13,7 @@ import { attachSessionStreamListeners } from "./stream-events";
 import {
   bookKey,
   createSessionRuntime,
+  deriveResolvedProposals,
   deserializeMessages,
   extractErrorMessage,
   mergeSessionIds,
@@ -103,12 +104,18 @@ export const createMessageSlice: StateCreator<ChatStore, [], [], MessageActions>
     })),
 
   loadSessionMessages: (sessionId, msgs) =>
-    set((state) => ({
-      sessions: updateSession(state.sessions, sessionId, (session) => {
-        if (session.messages.length > 0) return {};
-        return { messages: deserializeMessages(msgs) };
-      }),
-    })),
+    set((state) => {
+      const session = state.sessions[sessionId];
+      if (!session || session.messages.length > 0) return {};
+      const messages = deserializeMessages(msgs);
+      return {
+        sessions: updateSession(state.sessions, sessionId, () => ({ messages })),
+        resolvedProposals: {
+          ...state.resolvedProposals,
+          ...deriveResolvedProposals(messages),
+        },
+      };
+    }),
 
   setSelectedModel: (model, service) => set({ selectedModel: model, selectedService: service }),
 
@@ -266,6 +273,7 @@ export const createMessageSlice: StateCreator<ChatStore, [], [], MessageActions>
       if (!detail?.sessionId) return;
       const detailSessionId = detail.sessionId;
       const messages = detail.messages ? deserializeMessages(detail.messages) : [];
+      const restoredResolutions = deriveResolvedProposals(messages);
 
       set((state) => {
         const runtime = state.sessions[detailSessionId];
@@ -296,6 +304,10 @@ export const createMessageSlice: StateCreator<ChatStore, [], [], MessageActions>
               state.sessionIdsByBook[bookKey(nextBookId)],
               [detailSessionId],
             ),
+          },
+          resolvedProposals: {
+            ...state.resolvedProposals,
+            ...restoredResolutions,
           },
         };
       });

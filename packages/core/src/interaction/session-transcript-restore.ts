@@ -621,6 +621,19 @@ function messageEventsToInteractionMessages(events: MessageEvent[]): Interaction
     pendingToolExecutions = [];
     pendingThinking = [];
   };
+  const flushPendingToolExecutions = () => {
+    if (pendingToolExecutions.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last?.role !== "assistant") return;
+    messages[messages.length - 1] = {
+      ...last,
+      toolExecutions: [
+        ...(last.toolExecutions ?? []),
+        ...pendingToolExecutions,
+      ],
+    };
+    pendingToolExecutions = [];
+  };
   const toolCallKey = (requestId: string, toolCallId: string): string =>
     `${requestId}\0${toolCallId}`;
 
@@ -698,6 +711,7 @@ function messageEventsToInteractionMessages(events: MessageEvent[]): Interaction
   for (const event of events) {
     const raw = event.message as Record<string, unknown>;
     if (activeRequestId !== event.requestId) {
+      flushPendingToolExecutions();
       activeRequestId = event.requestId;
       clearPending();
     }
@@ -730,6 +744,7 @@ function messageEventsToInteractionMessages(events: MessageEvent[]): Interaction
     if (message) messages.push(message);
   }
 
+  flushPendingToolExecutions();
   return messages;
 }
 

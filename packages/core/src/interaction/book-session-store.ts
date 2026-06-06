@@ -217,6 +217,7 @@ export async function migrateBookSession(
 
   await appendSessionMetadataUpdatedEvent(projectRoot, sessionId, {
     bookId: newBookId,
+    sessionKind: "book",
     updatedAt: Date.now(),
   });
   return loadBookSession(projectRoot, sessionId);
