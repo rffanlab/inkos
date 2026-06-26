@@ -20,7 +20,15 @@ const graph = StoryGraphSchema.parse({
 describe("exportInk", () => {
   it("declares variables", () => { expect(exportInk(graph)).toContain("VAR trust = 0"); });
   it("emits a knot per node", () => { const ink = exportInk(graph); expect(ink).toContain("=== node_s ==="); expect(ink).toContain("=== node_e1 ==="); });
-  it("maps a choice with a divert", () => { expect(exportInk(graph)).toMatch(/\*\s*\[公开\]\s*->\s*node_e1/); });
+  it("maps a choice with a divert", () => { expect(exportInk(graph)).toMatch(/\*\s*\[公开\][\s\S]*?->\s*node_e1/); });
+  it("emits a choice's effect before its divert (so it actually applies)", () => {
+    const ink = exportInk(graph);
+    const eff = ink.indexOf("~ trust += 1");
+    const div = ink.indexOf("-> node_e1");
+    expect(eff).toBeGreaterThan(-1);
+    expect(div).toBeGreaterThan(-1);
+    expect(eff).toBeLessThan(div);
+  });
   it("maps a conditional choice", () => { expect(exportInk(graph)).toMatch(/\{\s*trust\s*>=\s*1\s*\}/); });
   it("maps an effect", () => { expect(exportInk(graph)).toMatch(/~\s*trust\s*\+=\s*1/); });
   it("ends ending knots with -> END", () => { const ink = exportInk(graph); const e1 = ink.slice(ink.indexOf("=== node_e1 ===")); expect(e1).toContain("-> END"); });

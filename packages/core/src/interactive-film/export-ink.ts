@@ -34,8 +34,9 @@ export function exportInk(graph: StoryGraph): string {
     if (node.choices.length === 0) { lines.push("-> END"); continue; }
     for (const c of node.choices as Choice[]) {
       const cond = c.condition ? ` {${sanitize(c.condition.var)} ${c.condition.op} ${typeof c.condition.value === "string" ? JSON.stringify(c.condition.value) : c.condition.value}}` : "";
-      lines.push(`*${cond} [${c.text}] -> ${knot(c.targetNodeId)}`);
+      lines.push(`*${cond} [${c.text}]`);
       for (const e of c.effects ?? []) lines.push(effectLine(e));
+      lines.push(`    -> ${knot(c.targetNodeId)}`);
     }
   }
   return lines.join("\n") + "\n";
