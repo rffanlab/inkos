@@ -13,10 +13,12 @@ test("analysis panel shows issues, emotion arc, and path distribution", async ({
   // 2. Click the validate step button.
   await page.getByTestId("wizard-step-validate").click();
 
-  // 3. The validation panel must be visible and list the seeded ISOLATED_NODE issue.
+  // 3. The validation panel must be visible and list the seeded GATED_UNREACHABLE issue.
+  //    "locked" is edge-reachable from start but trust (default 0) is never written to >=9,
+  //    so no runtime path reaches it → GATED_UNREACHABLE fires instead of the old ISOLATED_NODE.
   await expect(page.getByTestId("validation-panel")).toBeVisible({ timeout: 15_000 });
   await expect(
-    page.getByTestId("validation-issue-ISOLATED_NODE").first(),
+    page.getByTestId("validation-issue-GATED_UNREACHABLE").first(),
   ).toBeVisible({ timeout: 15_000 });
 
   // 4. The emotion arc chart must be rendered.

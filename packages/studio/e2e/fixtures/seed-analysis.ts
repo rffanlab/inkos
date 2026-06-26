@@ -9,9 +9,11 @@ export const E2E_ANALYSIS_ID = "e2e-analysis-panel-demo";
 /**
  * Seeds a story graph that exercises the full AnalysisPanel:
  *
- * - start node → 2 branches → 2 endings (≥2 runtime paths for emotion arc + path distribution)
+ * - start node → 2 unconditional branches → 2 endings (≥2 runtime paths for emotion arc + path distribution)
  * - dialogue lines with known-lexicon emotion strings (坚定, 紧张, 喜悦, 绝望)
- * - one ISOLATED_NODE (normal node that nothing points to) → triggers validation-issue-ISOLATED_NODE
+ * - one GATED_UNREACHABLE node: "locked" is edge-reachable (a conditional choice targets it from start)
+ *   but no runtime path ever reaches it because trust starts at 0 and is never written to ≥9
+ *   → triggers validation-issue-GATED_UNREACHABLE
  */
 export async function seedAnalysis(): Promise<void> {
   await saveStoryGraph(
@@ -21,7 +23,9 @@ export async function seedAnalysis(): Promise<void> {
       schemaVersion: 1,
       projectId: E2E_ANALYSIS_ID,
       title: "E2E 分析面板样例",
-      variables: [],
+      variables: [
+        { name: "trust", type: "counter", default: 0, desc: "信任值，从未被写入，永远不会达到 9" },
+      ],
       nodes: [
         {
           id: "start",
@@ -35,6 +39,12 @@ export async function seedAnalysis(): Promise<void> {
           choices: [
             { id: "c1", text: "选择信任", targetNodeId: "good-end" },
             { id: "c2", text: "选择放弃", targetNodeId: "bad-end" },
+            {
+              id: "c3",
+              text: "尝试解锁隐藏路线",
+              targetNodeId: "locked",
+              condition: { var: "trust", op: ">=", value: 9 },
+            },
           ],
         },
         {
@@ -58,13 +68,14 @@ export async function seedAnalysis(): Promise<void> {
           choices: [],
         },
         {
-          // Intentional ISOLATED_NODE: no other node's choice points here.
-          id: "orphan",
+          // Intentional GATED_UNREACHABLE: edge-reachable (start→locked via c3) but trust is
+          // never written, so the condition trust>=9 is never satisfied at runtime.
+          id: "locked",
           type: "normal",
-          title: "孤立节点",
-          sceneDesc: "这个节点无法被任何路径到达。",
+          title: "锁定节点",
+          sceneDesc: "这条路需要极高的信任值才能开启。",
           dialogue: [],
-          choices: [],
+          choices: [{ id: "c4", text: "通往结局", targetNodeId: "good-end" }],
         },
       ],
       endings: [
